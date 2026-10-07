@@ -1,0 +1,1 @@
+export default function Loading(){return <main className="grid min-h-screen place-items-center"><div className="rounded-2xl border bg-white px-6 py-4 text-sm font-bold shadow-sm">Loading ULTD TRANS...</div></main>}

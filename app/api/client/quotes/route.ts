@@ -1,0 +1,2 @@
+import { NextResponse } from 'next/server'; import { requireRole } from '@/lib/auth'; import { prisma } from '@/lib/prisma';
+export async function GET(){const user=await requireRole(['CLIENT']);const quotes=await prisma.quote.findMany({where:{project:{clientId:user.id}},include:{project:{select:{id:true,title:true,reference:true,serviceType:true}}},orderBy:{createdAt:'desc'}});return NextResponse.json({quotes});}

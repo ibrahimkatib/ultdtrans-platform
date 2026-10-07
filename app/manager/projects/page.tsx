@@ -1,0 +1,2 @@
+import {requireRole} from '@/lib/auth'; import ProjectList from '@/components/ProjectList';
+export default async function ManagerProjects(){await requireRole(['MANAGER','ADMIN']);return <div><div className="text-xs font-bold uppercase tracking-widest text-slate-400">Operations</div><h1 className="mt-1 text-4xl font-black">Project queue</h1><p className="mt-2 text-slate-500">Review requests, assign translators and monitor delivery status.</p><div className="mt-8"><ProjectList role="manager"/></div></div>}

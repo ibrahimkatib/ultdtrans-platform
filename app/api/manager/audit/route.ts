@@ -1,0 +1,2 @@
+import { NextResponse } from 'next/server'; import { requireRole } from '@/lib/auth'; import { prisma } from '@/lib/prisma';
+export async function GET(){await requireRole(['MANAGER','ADMIN']);const activities=await prisma.projectActivity.findMany({include:{actor:{select:{displayName:true,role:true}},project:{select:{reference:true,title:true}}},orderBy:{createdAt:'desc'},take:100});return NextResponse.json({activities});}

@@ -1,0 +1,2 @@
+import {NextResponse} from 'next/server'; import {requireUser} from '@/lib/auth'; import {prisma} from '@/lib/prisma';
+export async function PATCH(request:Request,{params}:{params:Promise<{id:string}>}){const user=await requireUser();if(!['MANAGER','ADMIN'].includes(user.role))return NextResponse.json({error:'Forbidden'},{status:403});const id=Number((await params).id);const b=await request.json().catch(()=>({}));const p=await prisma.translatorProfile.update({where:{id},data:{verified:Boolean(b.verified)}});return NextResponse.json(p);}

@@ -1,0 +1,1 @@
+import {requireRole} from '@/lib/auth'; import ProjectWorkspace from '@/components/ProjectWorkspace'; export default async function TranslatorProject({params}:{params:Promise<{id:string}>}){await requireRole(['TRANSLATOR']);const {id}=await params;return <ProjectWorkspace projectId={Number(id)} role="translator"/>}

@@ -1,0 +1,259 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  CLIENT
+  TRANSLATOR
+  MANAGER
+  ADMIN
+}
+
+enum ProjectStatus {
+  REQUESTED
+  MATCHING
+  ASSIGNED
+  IN_PROGRESS
+  REVIEW
+  COMPLETED
+  CANCELLED
+}
+
+enum ServiceType {
+  HUMAN
+  AI
+  AI_HUMAN_REVIEW
+}
+
+enum AvailabilityStatus {
+  AVAILABLE
+  BUSY
+  UNAVAILABLE
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model User {
+  id                Int               @id @default(autoincrement())
+  email             String            @unique
+  passwordHash      String
+  displayName       String
+  role              UserRole          @default(CLIENT)
+  timezone          String            @default("Europe/Amsterdam")
+  phone             String?
+  avatarUrl         String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  clientProfile     ClientProfile?
+  translatorProfile TranslatorProfile?
+  clientProjects    Project[]         @relation("ClientProjects")
+  managedProjects   Project[]         @relation("ManagerProjects")
+  sessions          Session[]
+  messagesSent      Message[]         @relation("SentMessages")
+  ratingsGiven      Rating[]          @relation("RatingsGiven")
+  notifications     Notification[]
+  filesUploaded     ProjectFile[]     @relation("UploadedFiles")
+  projectActivities ProjectActivity[]
+}
+
+model Session {
+  id        Int      @id @default(autoincrement())
+  tokenHash String   @unique
+  userId    Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model ClientProfile {
+  id          Int     @id @default(autoincrement())
+  userId      Int     @unique
+  companyName String?
+  companyRole String?
+  billingName String?
+  billingEmail String?
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TranslatorProfile {
+  id                Int                @id @default(autoincrement())
+  userId            Int                @unique
+  bio               String?
+  cvUrl             String?
+  yearsExperience   Int?
+  translationRate   Float?             // per word in EUR
+  proofreadingRate  Float?
+  mtpeRate          Float?
+  availability      AvailabilityStatus  @default(AVAILABLE)
+  availableFrom     String?
+  availableTo       String?
+  verified          Boolean            @default(false)
+  averageRating     Float              @default(0)
+  completedProjects Int                @default(0)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  languages         TranslatorLanguage[]
+  specializations   TranslatorSpecialization[]
+  projects          Project[]           @relation("TranslatorProjects")
+  ratingsReceived   Rating[]            @relation("TranslatorRatings")
+}
+
+model Language {
+  id               Int                  @id @default(autoincrement())
+  name             String               @unique
+  code             String               @unique
+  sourceProjects   Project[]            @relation("SourceLanguageProjects")
+  targetProjects   Project[]            @relation("TargetLanguageProjects")
+  translatorLinks  TranslatorLanguage[]
+}
+
+model TranslatorLanguage {
+  id           Int               @id @default(autoincrement())
+  translatorId Int
+  languageId  Int
+  level        String
+  isNative     Boolean           @default(false)
+  translator   TranslatorProfile @relation(fields: [translatorId], references: [id], onDelete: Cascade)
+  language     Language          @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@unique([translatorId, languageId])
+}
+
+model Specialization {
+  id              Int                       @id @default(autoincrement())
+  name            String                    @unique
+  translatorLinks TranslatorSpecialization[]
+}
+
+model TranslatorSpecialization {
+  id               Int               @id @default(autoincrement())
+  translatorId     Int
+  specializationId Int
+  translator       TranslatorProfile @relation(fields: [translatorId], references: [id], onDelete: Cascade)
+  specialization   Specialization    @relation(fields: [specializationId], references: [id], onDelete: Cascade)
+
+  @@unique([translatorId, specializationId])
+}
+
+model Project {
+  id               Int               @id @default(autoincrement())
+  reference        String            @unique
+  clientId         Int
+  translatorId     Int?
+  managerId        Int?
+  sourceLanguageId Int
+  targetLanguageId Int
+  serviceType      ServiceType
+  status           ProjectStatus     @default(REQUESTED)
+  priority         Priority          @default(MEDIUM)
+  title            String
+  description      String?
+  specialization   String?
+  wordCount        Int               @default(0)
+  price            Float             @default(0)
+  currency         String            @default("EUR")
+  deadline         DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  client           User              @relation("ClientProjects", fields: [clientId], references: [id])
+  translator       TranslatorProfile? @relation("TranslatorProjects", fields: [translatorId], references: [id])
+  manager          User?             @relation("ManagerProjects", fields: [managerId], references: [id])
+  sourceLanguage   Language          @relation("SourceLanguageProjects", fields: [sourceLanguageId], references: [id])
+  targetLanguage   Language          @relation("TargetLanguageProjects", fields: [targetLanguageId], references: [id])
+  messages         Message[]
+  ratings          Rating[]
+  files            ProjectFile[]
+  quote            Quote?
+  activities       ProjectActivity[]
+  @@index([clientId])
+  @@index([translatorId])
+  @@index([managerId])
+  @@index([status])
+}
+
+model Quote {
+  id            Int         @id @default(autoincrement())
+  projectId     Int         @unique
+  baseRate      Float
+  wordCount     Int
+  subtotal      Float
+  discount      Float       @default(0)
+  total         Float
+  currency      String      @default("EUR")
+  validUntil    DateTime?
+  createdAt     DateTime    @default(now())
+  project       Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ProjectFile {
+  id         Int      @id @default(autoincrement())
+  projectId  Int
+  uploadedBy Int
+  fileName   String
+  storedPath String
+  mimeType   String
+  sizeBytes  Int
+  createdAt  DateTime @default(now())
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploader   User     @relation("UploadedFiles", fields: [uploadedBy], references: [id])
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  projectId Int
+  senderId  Int
+  body      String
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sender    User     @relation("SentMessages", fields: [senderId], references: [id])
+  @@index([projectId, createdAt])
+}
+
+model Rating {
+  id           Int               @id @default(autoincrement())
+  projectId    Int
+  translatorId Int
+  reviewerId   Int
+  score        Int
+  comment      String?
+  createdAt    DateTime          @default(now())
+  project      Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  translator   TranslatorProfile @relation("TranslatorRatings", fields: [translatorId], references: [id])
+  reviewer     User              @relation("RatingsGiven", fields: [reviewerId], references: [id])
+  @@unique([projectId, reviewerId])
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String
+  body      String
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, createdAt])
+}
+
+model ProjectActivity {
+  id        Int      @id @default(autoincrement())
+  projectId Int
+  actorId   Int
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  actor     User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+}

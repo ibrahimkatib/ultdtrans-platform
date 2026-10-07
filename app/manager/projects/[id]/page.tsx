@@ -1,0 +1,1 @@
+import {requireRole} from '@/lib/auth'; import ProjectWorkspace from '@/components/ProjectWorkspace'; export default async function ManagerProject({params}:{params:Promise<{id:string}>}){await requireRole(['MANAGER','ADMIN']);const {id}=await params;return <ProjectWorkspace projectId={Number(id)} role="manager"/>}

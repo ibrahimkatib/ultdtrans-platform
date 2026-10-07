@@ -1,0 +1,2 @@
+import {requireRole} from '@/lib/auth'; import ClientRequestForm from '@/components/ClientRequestForm';
+export default async function NewRequest(){await requireRole(['CLIENT']);return <div className="max-w-4xl"><div className="text-xs font-bold uppercase tracking-widest text-slate-400">New request</div><h1 className="mt-1 text-4xl font-black">Start a translation project</h1><p className="mt-2 text-slate-500">Choose the workflow that matches your quality, speed and budget requirements.</p><div className="mt-8"><ClientRequestForm/></div></div>}
